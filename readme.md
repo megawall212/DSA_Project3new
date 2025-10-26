@@ -10,6 +10,9 @@
 
 **See [the bottom of this document](#common-issues) for common issues and their solutions before asking for help in the Discord!**
 
+# TLDR (Too Long Didn't Read)
+This template sets up the Catch2 testing framework for you and provides a scaffold to develop your project within. It works for CLion and VSCode and may work for other editors as well. See either of the above two videos for help setting up your local environment, or read on for more details about how to use this template.
+
 # When should I start testing?
 **From the very start of your project!** By following principles of *Test Driven Development* (TDD) from the very start of your project, you create a tangible roadmap of features to implement, and you can be confident in knowing that your simpler features work when implementing more advanced ones. If you don't develop with testing in mind, you may end up having to refactor your code so you can test the output of functions (or use a workaround to capture COUT). 
 
@@ -173,7 +176,7 @@ If you make any changes to your files, you can run the last two commands again.
 You do not need to run the first command again.
 
 
-# Project Changes to Quiz Template
+# Running Your Code
 This template provides 2 executables, Main and Tests. Main will run your main.cpp file as it is, while Tests will run Catch tests on your test.cpp and ignore your main.cpp file.
 
 Depending on your editor, you may need to modify the `add_executable()` sections in the CMakeLists.txt file as you add header files that you reference in main. An example is provided within the file. This should be done automatically in CLion.
@@ -181,9 +184,6 @@ Depending on your editor, you may need to modify the `add_executable()` sections
 Choosing the executable differs depending on the editor that you are using. In Clion (and potentially Visual Studio), you should be able to click the dropdown next to the Run button and choose Main or Tests. In VSCode, you should click on the CMake tab in the sidebar, and under Launch, click the edit button to select Main to run your AVL tree.
 
 Please reach out on Discord if you have any questions, and the guide will be updated accordingly.
-
-## Project 2 Template Features
-The template includes the suggested code structure from the "Simplified Page Rank" document. Feel free to change it to suit your needs, but be sure that any code you want to test is not written in main.cpp!
 
 ## Running Main/Tests
 
