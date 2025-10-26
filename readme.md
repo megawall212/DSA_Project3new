@@ -8,7 +8,7 @@
 ### Local CLion Tutorial
 [![Thumbnail for CLion tutorial video](https://img.youtube.com/vi/T6CG9T7nFaA/maxresdefault.jpg)](https://www.youtube.com/watch?v=T6CG9T7nFaA)
 
-**See [the bottom of this document](#common-issues) for common issues and their solutions before asking for help in the Discord!**
+**See [the bottom of this document](#common-issues) for common issues and their solutions before asking for help in Slack!**
 
 # TLDR (Too Long Didn't Read)
 This template sets up the Catch2 testing framework for you and provides a scaffold to develop your project within. It works for CLion and VSCode and may work for other editors as well. See either of the above two videos for help setting up your local environment, or read on for more details about how to use this template.
@@ -183,7 +183,7 @@ Depending on your editor, you may need to modify the `add_executable()` sections
 
 Choosing the executable differs depending on the editor that you are using. In Clion (and potentially Visual Studio), you should be able to click the dropdown next to the Run button and choose Main or Tests. In VSCode, you should click on the CMake tab in the sidebar, and under Launch, click the edit button to select Main to run your AVL tree.
 
-Please reach out on Discord if you have any questions, and the guide will be updated accordingly.
+Please reach out on Slack if you have any questions, and the guide will be updated accordingly.
 
 ## Running Main/Tests
 
