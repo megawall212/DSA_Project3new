@@ -6,30 +6,21 @@
 #include <limits>
 #include <algorithm>
 #include <iostream>
-using namespace std;
 
-/* ----------------------------
-   Helper: Ensure node exists
-   ---------------------------- */
-void Graph::addNodeIfMissing(int nodeId) {
-    if (adjList.find(nodeId) == adjList.end()) {
-        adjList[nodeId] = {}; // create empty adjacency list
-    }
-}
+using namespace std;
 
 /* ----------------------------
    CSV Loading Functions
    ---------------------------- */
-
-// Load edges.csv into adjacency list
 bool Graph::loadEdgesCSV(const string& filepath) {
     ifstream file(filepath);
     if (!file.is_open()) return false;
 
     string line;
-    getline(file, line); // skip header
+    getline(file, line); // skip header (if present)
 
     while (getline(file, line)) {
+        if (line.empty()) continue;
         stringstream ss(line);
         string loc1Str, loc2Str, name1, name2, travelTimeStr;
 
@@ -37,31 +28,35 @@ bool Graph::loadEdgesCSV(const string& filepath) {
         if (!getline(ss, loc2Str, ',')) continue;
         if (!getline(ss, name1, ',')) continue;
         if (!getline(ss, name2, ',')) continue;
-        if (!getline(ss, travelTimeStr, ',')) continue;
+       
 
-        int loc1 = stoi(loc1Str);
-        int loc2 = stoi(loc2Str);
-        int travelTime = stoi(travelTimeStr);
+        if (!getline(ss, travelTimeStr)) continue;
 
-        addNodeIfMissing(loc1);
-        addNodeIfMissing(loc2);
-
-        addEdge(loc1, loc2, travelTime);
+        try {
+            int loc1 = stoi(loc1Str);
+            int loc2 = stoi(loc2Str);
+            int travelTime = stoi(travelTimeStr);
+            if (adjList.find(loc1) == adjList.end()) adjList[loc1] = {};
+            if (adjList.find(loc2) == adjList.end()) adjList[loc2] = {};
+            addEdge(loc1, loc2, travelTime);
+        } catch (...) {
+            continue;
+        }
     }
 
     file.close();
     return true;
 }
 
-// Load classes.csv into classToLocation and classInfoMap
 bool Graph::loadClassesCSV(const string& filepath) {
     ifstream file(filepath);
     if (!file.is_open()) return false;
 
     string line;
-    getline(file, line); // skip header
+    getline(file, line); // skip header (if present)
 
     while (getline(file, line)) {
+        if (line.empty()) continue;
         stringstream ss(line);
         string classCode, locStr, startTime, endTime;
 
@@ -70,15 +65,18 @@ bool Graph::loadClassesCSV(const string& filepath) {
         if (!getline(ss, startTime, ',')) continue;
         if (!getline(ss, endTime, ',')) continue;
 
-        int locationId = stoi(locStr);
-        addNodeIfMissing(locationId); // ensure class location exists
-
-        classToLocation[classCode] = locationId;
-        ClassInfo info;
-        info.locationId = locationId;
-        info.startTime = startTime;
-        info.endTime = endTime;
-        classInfoMap[classCode] = info;
+        try {
+            int locationId = stoi(locStr);
+            classToLocation[classCode] = locationId;
+            ClassInfo info;
+            info.locationId = locationId;
+            info.startTime = startTime;
+            info.endTime = endTime;
+            classInfoMap[classCode] = info;
+            if (adjList.find(locationId) == adjList.end()) adjList[locationId] = {};
+        } catch (...) {
+            continue;
+        }
     }
 
     file.close();
@@ -88,40 +86,43 @@ bool Graph::loadClassesCSV(const string& filepath) {
 /* ----------------------------
    Class Queries
    ---------------------------- */
-
 int Graph::getClassLocation(const string& classCode) const {
     auto it = classToLocation.find(classCode);
-    if (it != classToLocation.end()) return it->second;
-    return -1;
+    return it != classToLocation.end() ? it->second : -1;
 }
 
 ClassInfo Graph::getClassInfo(const string& classCode) const {
     auto it = classInfoMap.find(classCode);
-    if (it != classInfoMap.end()) return it->second;
-    return ClassInfo();
+    return it != classInfoMap.end() ? it->second : ClassInfo();
+}
+
+void Graph::setClassInfo(const std::string& classCode, const ClassInfo& info) {
+    classInfoMap[classCode] = info;
+    classToLocation[classCode] = info.locationId;
 }
 
 /* ----------------------------
    Edge Operations
    ---------------------------- */
-
 void Graph::addEdge(int loc1, int loc2, int travelTime) {
+    if (adjList.find(loc1) == adjList.end()) adjList[loc1] = {};
+    if (adjList.find(loc2) == adjList.end()) adjList[loc2] = {};
     adjList[loc1].push_back(Edge(loc2, travelTime, true));
     adjList[loc2].push_back(Edge(loc1, travelTime, true));
 }
 
-void Graph::toggleEdgeClosure(int loc1, int loc2) {
-    Edge* edge1 = findEdge(loc1, loc2);
-    Edge* edge2 = findEdge(loc2, loc1);
-    if (edge1) edge1->isOpen = !edge1->isOpen;
-    if (edge2) edge2->isOpen = !edge2->isOpen;
+bool Graph::toggleEdgesClosure(const vector<pair<int,int>>& edges) {
+    for (const auto& p : edges) {
+        int u = p.first, v = p.second;
+        Edge* e1 = findEdge(u, v);
+        Edge* e2 = findEdge(v, u);
+        if (!e1 || !e2) return false; // fail immediately
+        e1->isOpen = !e1->isOpen;
+        e2->isOpen = !e2->isOpen;
+    }
+    return true;
 }
 
-void Graph::toggleMultipleEdges(const vector<pair<int,int>>& edges) {
-    for (auto& p : edges) {
-        toggleEdgeClosure(p.first, p.second);
-    }
-}
 
 string Graph::checkEdgeStatus(int loc1, int loc2) const {
     const Edge* edge = findEdgeConst(loc1, loc2);
@@ -132,23 +133,20 @@ string Graph::checkEdgeStatus(int loc1, int loc2) const {
 /* ----------------------------
    Connectivity & Shortest Paths
    ---------------------------- */
-
 bool Graph::isConnected(int src, int dst) const {
     if (adjList.find(src) == adjList.end() || adjList.find(dst) == adjList.end()) return false;
-
     unordered_set<int> visited;
     queue<int> q;
     q.push(src);
     visited.insert(src);
-
     while (!q.empty()) {
-        int current = q.front(); q.pop();
-        if (current == dst) return true;
-
-        for (const auto& edge : adjList.at(current)) {
-            if (edge.isOpen && visited.find(edge.destination) == visited.end()) {
-                visited.insert(edge.destination);
-                q.push(edge.destination);
+        int cur = q.front(); q.pop();
+        if (cur == dst) return true;
+        for (const auto& e : adjList.at(cur)) {
+            if (!e.isOpen) continue;
+            if (visited.find(e.destination) == visited.end()) {
+                visited.insert(e.destination);
+                q.push(e.destination);
             }
         }
     }
@@ -157,60 +155,36 @@ bool Graph::isConnected(int src, int dst) const {
 
 PathResult Graph::dijkstra(int src, int dst) const {
     PathResult result;
-    // source must exist in adjList
-    if (adjList.find(src) == adjList.end()) {
-        result.totalCost = -1;
-        return result;
-    }
+    result.totalCost = -1;
+    if (adjList.find(src) == adjList.end()) return result;
 
-    // initialize dist & parent for every node that appears anywhere in the graph:
+    const int INF = numeric_limits<int>::max();
     unordered_map<int,int> dist;
     unordered_map<int,int> parent;
-    const int INF = numeric_limits<int>::max();
 
     for (const auto& kv : adjList) {
         dist[kv.first] = INF;
-        for (const auto& e : kv.second) {
-            // ensure destination nodes also get initialized (in case they are not keys)
-            if (dist.find(e.destination) == dist.end()) dist[e.destination] = INF;
-        }
+        for (const auto& e : kv.second) if (dist.find(e.destination) == dist.end()) dist[e.destination] = INF;
     }
 
-    // if dst is not present anywhere (neither key nor destination) -> unreachable
-    if (dist.find(dst) == dist.end()) {
-        result.totalCost = -1;
-        return result;
-    }
+    if (dist.find(dst) == dist.end()) return result;
 
     dist[src] = 0;
-
-    // min-heap: (distance, node)
     priority_queue<pair<int,int>, vector<pair<int,int>>, greater<pair<int,int>>> pq;
     pq.push({0, src});
 
     while (!pq.empty()) {
-        auto [curDist, node] = pq.top(); pq.pop();
-
-        // ignore stale entries
-        if (curDist > dist[node]) continue;
-
-        // optional early stop (safe because we always pop the smallest dist first)
+        auto [dcur, node] = pq.top(); pq.pop();
+        if (dcur > dist[node]) continue;
         if (node == dst) break;
-
-        auto it = adjList.find(node);
-        if (it == adjList.end()) continue;
-
-        for (const auto& edge : it->second) {
-            if (!edge.isOpen) continue;
-            int nextNode = edge.destination;
-            // if nextNode wasn't in dist for some reason, treat as INF (shouldn't happen now)
-            int known = dist.count(nextNode) ? dist.at(nextNode) : INF;
-            if (curDist == INF) continue; // defensive
-            int newDist = curDist + edge.travelTime;
-            if (newDist < known) {
-                dist[nextNode] = newDist;
-                parent[nextNode] = node;
-                pq.push({newDist, nextNode});
+        for (const auto& e : adjList.at(node)) {
+            if (!e.isOpen) continue;
+            int nxt = e.destination;
+            long long cand = (long long)dcur + e.travelTime;
+            if (cand < dist[nxt]) {
+                dist[nxt] = static_cast<int>(cand);
+                parent[nxt] = node;
+                pq.push({dist[nxt], nxt});
             }
         }
     }
@@ -225,79 +199,34 @@ PathResult Graph::dijkstra(int src, int dst) const {
     return result;
 }
 
-
-//  tests that call shortestPath(...) use the dijkstra implementation
 PathResult Graph::shortestPath(int start, int end) {
     return dijkstra(start, end);
 }
 
-
-
 vector<int> Graph::buildPath(int target, const unordered_map<int,int>& parent) const {
     vector<int> path;
-    int current = target;
-    while (parent.find(current) != parent.end()) {
-        path.push_back(current);
-        current = parent.at(current);
+    int cur = target;
+    while (parent.find(cur) != parent.end()) {
+        path.push_back(cur);
+        cur = parent.at(cur);
     }
-    path.push_back(current);
+    path.push_back(cur);
     reverse(path.begin(), path.end());
     return path;
 }
 
-
-
-
-
-void Graph::debugGraphState() const {
-    cout << "Adjacency List:\n";
-    for (auto& [node, edges] : adjList) {
-        cout << "Node " << node << ": ";
-        for (auto& e : edges) cout << "(" << e.destination << ", " << e.travelTime << ", " << (e.isOpen?"open":"closed") << ") ";
-        cout << "\n";
-    }
-
-    cout << "\nClass Locations:\n";
-    for (auto& [code, loc] : classToLocation) cout << code << " -> " << loc << "\n";
-
-    cout << "\nStudents:\n";
-    for (auto& [ufid, student] : students) {
-        cout << ufid << ": " << student.getName() << " Classes: ";
-        for (auto& c : student.getClasses()) cout << c << " ";
-        cout << "\n";
-    }
-}
-
-
-
-
-
-map<string,int> Graph::shortestTimesFromResidence(int residenceId, const vector<pair<string,int>>& classes) const {
-    map<string,int> result;
-    if (adjList.find(residenceId) == adjList.end()) return result;
-
-    for (const auto& [classCode, locId] : classes) {
-        if (adjList.find(locId) == adjList.end()) {
-            result[classCode] = -1;
-            continue;
-        }
-        PathResult pathRes = dijkstra(residenceId, locId);
-        result[classCode] = pathRes.totalCost;
-    }
-    return result;
-}
-
 /* ----------------------------
-   Student Zone (MST)
+   Student Zone (MST helpers)
    ---------------------------- */
-
 vector<EdgeInfo> Graph::inducedSubgraphEdges(const unordered_set<int>& vertices) const {
     vector<EdgeInfo> edges;
     for (int u : vertices) {
-        for (const auto& edge : adjList.at(u)) {
-            int v = edge.destination;
-            if (vertices.find(v) != vertices.end() && u < v && edge.isOpen) {
-                edges.push_back(EdgeInfo(u, v, edge.travelTime));
+        auto it = adjList.find(u);
+        if (it == adjList.end()) continue;
+        for (const auto& e : it->second) {
+            int v = e.destination;
+            if (vertices.find(v) != vertices.end() && u < v && e.isOpen) {
+                edges.push_back(EdgeInfo(u, v, e.travelTime));
             }
         }
     }
@@ -306,131 +235,80 @@ vector<EdgeInfo> Graph::inducedSubgraphEdges(const unordered_set<int>& vertices)
 
 int Graph::computeMSTCost(const unordered_set<int>& vertices, const vector<EdgeInfo>& edges) const {
     if (vertices.empty()) return 0;
-
-    unordered_set<int> inMST;
-    map<int,int> key;
-    for (int v : vertices) key[v] = numeric_limits<int>::max();
-
-    int start = *vertices.begin();
-    key[start] = 0;
-    int totalCost = 0;
-
-    while (inMST.size() < vertices.size()) {
-        int u = -1;
-        int minKey = numeric_limits<int>::max();
-        for (auto& kv : key) {
-            if (inMST.find(kv.first) == inMST.end() && kv.second < minKey) {
-                minKey = kv.second;
-                u = kv.first;
-            }
-        }
-        if (u == -1) break; // disconnected
-
-        inMST.insert(u);
-        totalCost += key[u];
-
-        for (const auto& edge : edges) {
-            int a = edge.startNodeId, b = edge.endNodeId, w = edge.weight;
-            if (inMST.find(a) != inMST.end() && inMST.find(b) == inMST.end() && w < key[b]) key[b] = w;
-            else if (inMST.find(b) != inMST.end() && inMST.find(a) == inMST.end() && w < key[a]) key[a] = w;
-        }
+    unordered_map<int, vector<pair<int,int>>> g;
+    for (int v : vertices) g[v] = {};
+    for (const auto& e : edges) {
+        g[e.startNodeId].push_back({e.endNodeId, e.weight});
+        g[e.endNodeId].push_back({e.startNodeId, e.weight});
     }
 
-    return totalCost;
+    unordered_set<int> inMST;
+    unordered_map<int,int> minEdge;
+    for (auto &kv : g) minEdge[kv.first] = numeric_limits<int>::max();
+
+    int start = *vertices.begin();
+    minEdge[start] = 0;
+    int total = 0;
+
+    while (inMST.size() < vertices.size()) {
+        int pick = -1;
+        int best = numeric_limits<int>::max();
+        for (auto &kv : minEdge) {
+            if (inMST.find(kv.first) == inMST.end() && kv.second < best) {
+                best = kv.second; pick = kv.first;
+            }
+        }
+        if (pick == -1) break;
+        inMST.insert(pick);
+        total += minEdge[pick];
+        for (auto &nei : g[pick]) {
+            int v = nei.first, w = nei.second;
+            if (inMST.find(v) == inMST.end() && w < minEdge[v]) minEdge[v] = w;
+        }
+    }
+    return total;
 }
 
 int Graph::computeStudentZoneCost(int residenceId, const vector<int>& classLocations) const {
-    unordered_set<int> vertices = {residenceId};
-    vertices.insert(classLocations.begin(), classLocations.end());
-
-    vector<EdgeInfo> subEdges = inducedSubgraphEdges(vertices);
-    return computeMSTCost(vertices, subEdges);
+    unordered_set<int> vertices;
+    vertices.insert(residenceId);
+    for (int loc : classLocations) {
+        PathResult pr = dijkstra(residenceId, loc);
+        if (pr.totalCost == -1) continue;
+        for (int node : pr.path) vertices.insert(node);
+    }
+    vector<EdgeInfo> edges = inducedSubgraphEdges(vertices);
+    return computeMSTCost(vertices, edges);
 }
 
 /* ----------------------------
-   Extra Credit: Schedule Verification
+   Student / class management
    ---------------------------- */
+bool Graph::addStudent(const std::string& name, int ufid,const std::vector<std::string>& classes, int residence) {
+    // Validate UFID and name
+    string ufidStr = to_string(ufid);
+    if (!Student::isValidUFID(ufidStr)) return false;
+    if (!Student::isValidName(name)) return false;
 
-vector<string> Graph::verifySchedule(const vector<ClassInfo>& classes) const {
-    vector<string> results;
+    // Validate class count
+    if (classes.size() < 1 || classes.size() > 6) return false;
 
-    auto timeToMinutes = [](const string& s) -> int {
-        int h = stoi(s.substr(0,2));
-        int m = stoi(s.substr(3,2));
-        bool pm = s.find("PM") != string::npos;
-        if (pm && h != 12) h += 12;
-        if (!pm && h == 12) h = 0;
-        return h*60 + m;
-    };
+    // Check UFID uniqueness
+    if (students.find(ufid) != students.end()) return false;
 
-    for (size_t i = 0; i + 1 < classes.size(); ++i) {
-        PathResult pathRes = dijkstra(classes[i].locationId, classes[i+1].locationId);
-        if (pathRes.totalCost == -1) {
-            results.push_back("Cannot make it!");
-            continue;
-        }
-
-        int gap = timeToMinutes(classes[i+1].startTime) - timeToMinutes(classes[i].endTime);
-        results.push_back(gap >= pathRes.totalCost ? "Can make it!" : "Cannot make it!");
+    // Validate class format only (do NOT check existence in classToLocation here)
+    for (const auto& c : classes) {
+        if (!Student::isValidClassCode(c)) return false;
+        if (classToLocation.find(c) == classToLocation.end()) return false; 
     }
 
-    return results;
-}
+    // validate resident ID (it should exists as a node in the graph)
 
-/* ----------------------------
-   Helper functions: find edges
-   ---------------------------- */
+    if (adjList.find(residence) == adjList.end())
+        return false;
 
-Edge* Graph::findEdge(int u, int v) {
-    auto it = adjList.find(u);
-    if (it == adjList.end()) return nullptr;
-    for (auto& edge : it->second) if (edge.destination == v) return &edge;
-    return nullptr;
-}
-
-const Edge* Graph::findEdgeConst(int u, int v) const {
-    auto it = adjList.find(u);
-    if (it == adjList.end()) return nullptr;
-    for (const auto& edge : it->second) if (edge.destination == v) return &edge;
-    return nullptr;
-}
-
-/* ----------------------------
-   Validation Helpers
-   ---------------------------- */
-
-bool Graph::isValidClassCode(const string& s) {
-    if (s.length() != 7) return false;
-    for (int i = 0; i < 3; ++i) if (!isupper(s[i])) return false;
-    for (int i = 3; i < 7; ++i) if (!isdigit(s[i])) return false;
-    return true;
-}
-
-bool Graph::isValidUFID(const string& s) {
-    if (s.length() != 8) return false;
-    for (char c : s) if (!isdigit(c)) return false;
-    return true;
-}
-
-bool Graph::isValidTime(const string& s) {
-    if (s.length() < 7) return false;
-    if (!isdigit(s[0]) || !isdigit(s[1]) || s[2] != ':' || !isdigit(s[3]) || !isdigit(s[4])) return false;
-    if (s.find("AM") == string::npos && s.find("PM") == string::npos) return false;
-    return true;
-}
-
-bool Graph::isValidName(const string& s) {
-    for (char c : s) if (!isalpha(c) && c != ' ') return false;
-    return true;
-}
-
-/* ----------------------------
-   Student/Class Management
-   ---------------------------- */
-
-bool Graph::addStudent(const std::string& name, int ufid, int age, const std::vector<std::string>& classes, int residence) {
-    if (students.find(ufid) != students.end()) return false;
-    students[ufid] = Student(name, ufid, age, classes, residence);
+    // Add student
+    students[ufid] = Student(name, ufid,classes, residence);
     return true;
 }
 
@@ -441,41 +319,46 @@ bool Graph::removeStudent(int ufid) {
 
 int Graph::removeClass(const std::string& classCode) {
     int count = 0;
-    for (auto& [ufid, student] : students) {
-        if (student.removeClass(classCode)) count++;
+    vector<int> toErase;
+    for (auto &kv : students) {
+        int uf = kv.first;
+        Student &s = kv.second;
+        if (s.hasClass(classCode)) {
+            if (s.removeClass(classCode)) {
+                count++;
+                if (s.getNumberOfClasses() == 0) toErase.push_back(uf);
+            }
+        }
     }
-
+    for (int u : toErase) students.erase(u);
     classToLocation.erase(classCode);
     classInfoMap.erase(classCode);
-
     return count;
 }
 
-void Graph::dropClass(const std::string& classCode) {
-    for (auto& [ufid, student] : students) student.removeClass(classCode);
-
-    classToLocation.erase(classCode);
-    classInfoMap.erase(classCode);
+bool Graph::dropClass(int ufid, const std::string& classCode) {
+    auto it = students.find(ufid);
+    if (it == students.end()) return false;
+    Student &s = it->second;
+    if (!s.hasClass(classCode)) return false;
+    s.removeClass(classCode);
+    if (s.getNumberOfClasses() == 0) students.erase(ufid);
+    return true;
 }
 
 bool Graph::replaceClass(int ufid, const std::string& oldClass, const std::string& newClass) {
     auto it = students.find(ufid);
     if (it == students.end()) return false;
-    return it->second.replaceClass(oldClass, newClass);
+    Student &s = it->second;
+    if (!s.hasClass(oldClass)) return false;
+    if (s.hasClass(newClass)) return false;
+    if (classToLocation.find(newClass) == classToLocation.end()) return false;
+    return s.replaceClass(oldClass, newClass);
 }
 
-void Graph::setClassInfo(const std::string& classCode, const ClassInfo& info) {
-    classInfoMap[classCode] = info;
-    classToLocation[classCode] = info.locationId; 
-}
-
-ClassInfo Graph::getClassInfoPublic(const std::string& classCode) const {
-    auto it = classInfoMap.find(classCode);
-    if (it != classInfoMap.end()) return it->second;
-    return ClassInfo();
-}
-
-
+/* ----------------------------
+   Student helpers
+   ---------------------------- */
 string Graph::getStudentName(int ufid) const {
     auto it = students.find(ufid);
     return it != students.end() ? it->second.getName() : "";
@@ -486,19 +369,80 @@ int Graph::getStudentResidence(int ufid) const {
     return it != students.end() ? it->second.getResidence() : -1;
 }
 
-vector<pair<string, int>> Graph::getStudentClasses(int ufid) const {
+vector<pair<string,int>> Graph::getStudentClasses(int ufid) const {
+    vector<pair<string,int>> result;
     auto it = students.find(ufid);
-    vector<pair<string,int>> classes;
-    if (it != students.end()) {
-        for (const auto& code : it->second.getClasses()) {
-            auto locIt = classToLocation.find(code);
-            int loc = (locIt != classToLocation.end()) ? locIt->second : -1;
-            classes.emplace_back(code, loc);
-        }
+    if (it == students.end()) return result;
+    for (const auto &code : it->second.getClasses()) {
+        result.emplace_back(code, getClassLocation(code));
     }
-    return classes;
+    return result;
 }
 
+/* ----------------------------
+   shortestTimesFromResidence
+   ---------------------------- */
+map<string,int> Graph::shortestTimesFromResidence(int residenceId, const vector<pair<string,int>>& classes) const {
+    map<string,int> out;
+    if (adjList.find(residenceId) == adjList.end()) {
+        // but still return mapping with -1 for each class
+        for (const auto &p : classes) out[p.first] = -1;
+        return out;
+    }
+    for (const auto &p : classes) {
+        const string &classCode = p.first;
+        int loc = p.second;
+        if (loc == -1 || adjList.find(loc) == adjList.end()) {
+            out[classCode] = -1;
+            continue;
+        }
+        PathResult pr = dijkstra(residenceId, loc);
+        out[classCode] = pr.totalCost;
+    }
+    return out;
+}
 
+/* ----------------------------
+   Extra Credit: verify schedule
+   ---------------------------- */
+vector<string> Graph::verifySchedule(const vector<ClassInfo>& classes) const {
+    vector<string> out;
+    if (classes.size() <= 1) return out;
+    auto timeToMinutes = [](const string& s)->int {
+        int h = stoi(s.substr(0,2));
+        int m = stoi(s.substr(3,2));
+        return h*60 + m;
+    };
+    for (size_t i = 0; i+1 < classes.size(); ++i) {
+        PathResult pr = dijkstra(classes[i].locationId, classes[i+1].locationId);
+        if (pr.totalCost == -1) { out.push_back("Cannot make it!"); continue; }
+        int gap = timeToMinutes(classes[i+1].startTime) - timeToMinutes(classes[i].endTime);
+        out.push_back(gap >= pr.totalCost ? "Can make it!" : "Cannot make it!");
+    }
+    return out;
+}
 
+/* ----------------------------
+   Edge helpers
+   ---------------------------- */
+Edge* Graph::findEdge(int u, int v) {
+    auto it = adjList.find(u);
+    if (it == adjList.end()) return nullptr;
+    for (auto &e : it->second) if (e.destination == v) return &e;
+    return nullptr;
+}
 
+const Edge* Graph::findEdgeConst(int u, int v) const {
+    auto it = adjList.find(u);
+    if (it == adjList.end()) return nullptr;
+    for (const auto &e : it->second) if (e.destination == v) return &e;
+    return nullptr;
+}
+
+/* ----------------------------
+   Debug
+   ---------------------------- */
+void Graph::debugGraphState() const {
+    cerr << "Nodes: " << adjList.size() << "\n";
+    cerr << "Students: " << students.size() << "\n";
+}

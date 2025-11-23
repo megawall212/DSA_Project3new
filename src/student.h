@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <algorithm>
+#include <algorithm> // Added for validators if implemented in header, but okay here too.
 
 using namespace std;
 
@@ -9,33 +9,37 @@ using namespace std;
  * Student Class
  */
 class Student {
-
 private:
     string name;                // Full name of the student
-    int ufid;                   // 8-digit UFID (int!)
-    int age;                     // Student age
-    int residence = 0;           // Residence location ID
-    vector<string> classCodes;   // Classes
+    int ufid;                   // 8-digit UFID (int)
+    // int age;                 // REMOVED: Not in project requirements
+    int residence = 0;          // Residence location ID
+    vector<string> classCodes;  // Classes
 
 public:
     // Constructors
     Student() = default;
-    Student(const string& studentName, int ufid, int studentAge, const vector<string>& classes, int res = 0);
+    
+    // Updated Constructor: Removed age
+    Student(const string& studentName, int ufid, const vector<string>& classes, int res);
 
     // Getters
     string getName() const;
     int getUFID() const;
-    int getAge() const;
-    int getResidence() const;           
+    // int getAge() const;      // REMOVED
+    int getResidence() const;
     int getNumberOfClasses() const;
     vector<string> getClasses() const;
+
+    // Query
+    bool hasClass(const string& classCode) const;
 
     // Class operations
     bool addClass(const string& classCode);
     bool removeClass(const string& classCode);
     bool replaceClass(const string& oldClass, const string& newClass);
 
-    // Validators
+    // Validators (static helpers)
     static bool isValidUFID(const string& ufid);
     static bool isValidName(const string& name);
     static bool isValidClassCode(const string& code);

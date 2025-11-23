@@ -3,135 +3,127 @@
 
 #include "../src/student.h"
 #include "../src/Graph.h"
-#include <iostream>
 #include <vector>
 #include <string>
-
 using namespace std;
 
-TEST_CASE("Invalid commands (at least 5)") {
-    Student s;
-
-    // Invalid class codes
-    REQUIRE(!s.isValidClassCode("A11y"));
-    REQUIRE(!s.isValidClassCode("COP35")); 
-    REQUIRE(!s.isValidClassCode("COPS3000A"));
-
-    // Invalid UFIDs
-    REQUIRE(!s.isValidUFID("1234567a"));
-    REQUIRE(!s.isValidUFID("abcdef12"));
-}
-
-TEST_CASE("Edge cases (at least 3)") {
-    Graph g;
-    
-    // Removing student that doesn't exist
-    REQUIRE(!g.removeStudent(99999999));
-
-    // Removing class that doesn't exist
-    REQUIRE(!g.removeClass("CPSC9999"));
-
-    // Toggle edge that doesn't exist
-    REQUIRE(g.checkEdgeStatus(999, 1000) == "DNE");
-}
-
-TEST_CASE("Drop, remove, and replace class") {
+/*
+===========================================================
+ TEST 1: Incorrect commands / invalid insertions
+===========================================================
+*/
+TEST_CASE("Incorrect commands / invalid student data") {
     Graph g;
 
-    // Load sample classes
-    g.loadClassesCSV("../data/classes.csv");
+    // invalid UFID (not 8 digits)
+    REQUIRE(g.addStudent("John", 123, {"COP3530"}, 10) == false);
 
-    // Drop class
-    g.dropClass("COP3530");
-    REQUIRE(g.getClassLocation("COP3530") == -1);
+    // duplicate UFID
+    REQUIRE(g.addStudent("Amy", 11112222, {"COP3502"}, 12) == true);
+    REQUIRE(g.addStudent("Bob", 11112222, {"COP3503"}, 14) == false);
 
-    // Remove class
-    g.removeClass("CDA3101");
-    REQUIRE(g.getClassLocation("CDA3101") == -1);
-
-    // Insert class and replace class code
-    ClassInfo newClass;
-    newClass.locationId = 101;
-    newClass.startTime = "10:00 AM";
-    newClass.endTime = "11:00 AM";
-    g.setClassInfo("MAC2311", newClass);
-    REQUIRE(g.getClassLocation("MAC2311") == 101);
+    // invalid class code patterns
+    REQUIRE(Student::isValidClassCode("BAD") == false);
+    REQUIRE(Student::isValidClassCode("123456") == false);
+    REQUIRE(Student::isValidClassCode("COP3502") == true);
 }
 
-TEST_CASE("PrintShortestEdges scenario") {
+/*
+===========================================================
+ TEST 2: Edge-case operations
+===========================================================
+*/
+TEST_CASE("Edge cases: removing nonexistent student, dropping nonexistent class") {
     Graph g;
 
-    g.loadEdgesCSV("../data/edges.csv");
-    g.loadClassesCSV("../data/classes.csv");
+    g.addStudent("Amy", 12345678, {"COP3530"}, 5);
 
-    // Add a student so residence exists
-    g.addStudent("Brian", 35459999, 21, {"COP3530", "CDA3101", "MAC2311"}, 16);
+    // removing nonexistent UFID
+    REQUIRE(g.removeStudent(99999999) == false);
 
-    int startNode = g.getStudentResidence(35459999); 
-    int classLocation = g.getClassLocation("MAC2311"); 
+    // dropping class student does NOT have
+    REQUIRE(g.dropClass(12345678, "COP3502") == false);
 
-    PathResult res1 = g.dijkstra(startNode, classLocation);
-    REQUIRE(res1.totalCost >= 0); // Path exists initially
-
-    // Toggle edges along Brian's path to MAC2311 to simulate closure
-    // (Ensure these edges exist in your edges.csv for this student)
-    g.toggleEdgeClosure(16, 5);
-    g.toggleEdgeClosure(16, 6);
-    g.toggleEdgeClosure(16, 19);
-    g.toggleEdgeClosure(16, 42);
-
-    PathResult res2 = g.dijkstra(startNode, classLocation);
-    REQUIRE(res2.totalCost == -1); // Path is now blocked
+    // removing a class code that no student has
+    REQUIRE(g.removeClass("COP9999") == 0);
 }
 
-TEST_CASE("Sample input/output test") {
+/*
+===========================================================
+ TEST 3: dropClass, removeClass, remove, replaceClass
+===========================================================
+*/
+TEST_CASE("dropClass / removeClass / removeStudent / replaceClass") {
     Graph g;
 
-    g.loadEdgesCSV("../data/edges.csv");
-    g.loadClassesCSV("../data/classes.csv");
+    g.addStudent("Amy", 22223333, {"COP3530", "MAC2311"}, 10);
 
-    // Insert students
-    g.addStudent("Brandon", 45679999, 20, {"COP3530", "MAC2311"}, 40);
-    g.addStudent("Brian", 35459999, 21, {"COP3530", "CDA3101", "MAC2311"}, 16);
-    g.addStudent("Briana", 87879999, 22, {"CDA3101", "MAC2311", "EEL3701"}, 49);
+    // dropClass
+    REQUIRE(g.dropClass(22223333, "MAC2311") == true);
+    REQUIRE(g.dropClass(22223333, "MAC2311") == false); // already gone
 
-    g.debugGraphState(); // Optional: verify state visually
+    // replaceClass
+    REQUIRE(g.replaceClass(22223333, "COP3530", "COP3503") == true);
+    REQUIRE(g.replaceClass(22223333, "COP3530", "COP3503") == false); // old no longer exists
 
-    // Remove class COP3530
-    REQUIRE(g.removeClass("COP3530") == 2);
+    // removeClass globally
+    // Only 1 student still has COP3503
+    REQUIRE(g.removeClass("COP3503") == 1);
 
-    // Remove student Briana
-    REQUIRE(g.removeStudent(87879999));
-
-    // Remove class CDA3101
-    REQUIRE(g.removeClass("CDA3101") == 1);
-
-    // Get Brian's residence and class location
-    int startNode = g.getStudentResidence(35459999);
-    int mac2311Location = g.getClassLocation("MAC2311");
-    cout << "Brian's residence: " << startNode << ", MAC2311 location: " << mac2311Location << endl;
-
-    // Compute shortest path
-auto shortestTimes = g.shortestTimesFromResidence(35459999, {{"MAC2311", mac2311Location}});
-int travelTime = shortestTimes["MAC2311"];
-
-// DEBUG: Print the full path and distances
- // Compute shortest path
-// Compute shortest path
-auto pathResult = g.dijkstra(startNode, mac2311Location);
-travelTime = pathResult.totalCost; // remove 'int' here, reuse the existing variable
-
-cout << "Brian's residence: " << startNode 
-     << ", MAC2311 location: " << mac2311Location << endl;
-cout << "Total travel time to MAC2311: " << travelTime << endl;
-
-// Only check travel time if the residence and class location differ
-if (startNode != mac2311Location) {
-    REQUIRE(travelTime > 0); // positive travel time expected
-} else {
-    REQUIRE(travelTime == 0); // same node, zero travel time
+    // remove student
+    REQUIRE(g.removeStudent(22223333) == true);
+    REQUIRE(g.removeStudent(22223333) == false);
 }
 
+/*
+===========================================================
+ TEST 4: Shortest path becomes unreachable after edges toggle
+===========================================================
+*/
+TEST_CASE("printShortestEdges logic: reachable then unreachable after edge closure") {
+    Graph g;
+
+    // Build small graph manually:
+    // 1 --5--> 2 --5--> 3
+    g.addEdge(1, 2, 5);
+    g.addEdge(2, 3, 5);
+
+    // Each class maps to a location
+    g.setClassInfo("COP3530", ClassInfo{3, "10:00", "11:00"});
+
+    g.addStudent("Sam", 44445555, {"COP3530"}, 1);
+
+    // Should be reachable now
+    auto res = g.dijkstra(1, 3);
+    REQUIRE(res.totalCost == 10);
+
+    // Now toggle both edges OFF
+    REQUIRE(g.toggleEdgesClosure({{1,2}, {2,3}}) == true);
+
+    // Now unreachable
+    auto res2 = g.dijkstra(1, 3);
+    REQUIRE(res2.totalCost == -1);
 }
 
-// Add more test cases as needed to cover at least 20 in total
+/*
+===========================================================
+ TEST 5: isConnected + checkEdgeStatus basic behavior
+===========================================================
+*/
+TEST_CASE("Edge status and connectivity") {
+    Graph g;
+
+    g.addEdge(1, 2, 3);
+    g.addEdge(2, 3, 3);
+
+    REQUIRE(g.isConnected(1, 3) == true);
+
+    // check edge status string
+    REQUIRE(g.checkEdgeStatus(1,2) == "open");
+
+    // close edge 1-2
+    g.toggleEdgesClosure({{1,2}});
+
+    REQUIRE(g.checkEdgeStatus(1,2) == "closed");
+    REQUIRE(g.isConnected(1,3) == false);
+}
