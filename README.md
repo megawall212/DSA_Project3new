@@ -68,6 +68,24 @@ DSA_Project3new/
 ![Structure](images/structure.png)
 
 
+## 📂 Project Source Files Overview
+
+This project contains the following main source and header files:
+
+| File | Type | Purpose |
+|------|------|---------|
+| `src/main.cpp` | 📝 CPP | Entry point of the program. Loads CSV data, parses user commands, calls Graph and Student methods, and prints results. |
+| `src/Graph.h` / `src/Graph.cpp` | 📊 Header & CPP | Implements the Graph data structure representing UF campus locations. Handles edges, connectivity, shortest paths (Dijkstra), closures, MST for student zones, and related operations. |
+| `src/student.h` / `src/student.cpp` | 👤 Header & CPP | Implements the Student class. Manages student information, class enrollments, UFID validation, and helper methods for data integrity. |
+| `test/test.cpp` | 🧪 CPP | Unit tests using Catch2 framework. Tests student operations, edge cases, graph connectivity, shortest path, and class management functions. |
+
+### 🔹 Notes
+- Each `.h` file contains declarations for its corresponding `.cpp` implementation file.  
+- `main.cpp` should not contain Graph or Student implementation code—only usage and command parsing.  
+- `test.cpp` is independent and used exclusively for automated testing with Catch2.  
+
+
+
 
 - ## ⚙️ Dependencies  
 - **C++17** or later  
