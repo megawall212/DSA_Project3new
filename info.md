@@ -18,7 +18,9 @@ Due to campus construction and major events such as football games or guest lect
 
 > Note: All numbers between nodes are **random** and not accurate distances.
 
-![visualization](images/visualization.png)
+![visualization](images/visulization.png)
+also here:
+[map](https://cop3530.github.io/)
 
 
 **Task:**  
