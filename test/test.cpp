@@ -1,3 +1,6 @@
+// test/test.cpp
+// Finally we can test our project using Catch2 framework...
+
 #define CATCH_CONFIG_MAIN
 #include "catch/catch_amalgamated.hpp"
 
@@ -8,10 +11,9 @@
 using namespace std;
 
 /*
-===========================================================
- TEST 1: Incorrect commands / invalid insertions
-===========================================================
+TEST 1: Incorrect commands / invalid insertions
 */
+
 TEST_CASE("Incorrect commands / invalid student data") {
     Graph g;
 
@@ -29,29 +31,26 @@ TEST_CASE("Incorrect commands / invalid student data") {
 }
 
 /*
-===========================================================
+
  TEST 2: Edge-case operations
-===========================================================
 */
 TEST_CASE("Edge cases: removing nonexistent student, dropping nonexistent class") {
     Graph g;
 
     g.addStudent("Amy", 12345678, {"COP3530"}, 5);
 
-    // removing nonexistent UFID
+    // removing nonexistent UFID...
     REQUIRE(g.removeStudent(99999999) == false);
 
-    // dropping class student does NOT have
+    // dropping class student does NOT have...
     REQUIRE(g.dropClass(12345678, "COP3502") == false);
 
-    // removing a class code that no student has
+    // removing a class code that no student has...
     REQUIRE(g.removeClass("COP9999") == 0);
 }
 
 /*
-===========================================================
- TEST 3: dropClass, removeClass, remove, replaceClass
-===========================================================
+TEST 3: dropClass, removeClass, remove, replaceClass...
 */
 TEST_CASE("dropClass / removeClass / removeStudent / replaceClass") {
     Graph g;
@@ -60,11 +59,11 @@ TEST_CASE("dropClass / removeClass / removeStudent / replaceClass") {
 
     // dropClass
     REQUIRE(g.dropClass(22223333, "MAC2311") == true);
-    REQUIRE(g.dropClass(22223333, "MAC2311") == false); // already gone
+    REQUIRE(g.dropClass(22223333, "MAC2311") == false); // already gone,gg...
 
     // replaceClass
     REQUIRE(g.replaceClass(22223333, "COP3530", "COP3503") == true);
-    REQUIRE(g.replaceClass(22223333, "COP3530", "COP3503") == false); // old no longer exists
+    REQUIRE(g.replaceClass(22223333, "COP3530", "COP3503") == false); // old no longer exists...
 
     // removeClass globally
     // Only 1 student still has COP3503
@@ -76,15 +75,13 @@ TEST_CASE("dropClass / removeClass / removeStudent / replaceClass") {
 }
 
 /*
-===========================================================
- TEST 4: Shortest path becomes unreachable after edges toggle
-===========================================================
+ TEST 4: What if shortest path becomes unreachable after edges toggle
 */
 TEST_CASE("printShortestEdges logic: reachable then unreachable after edge closure") {
     Graph g;
 
     // Build small graph manually:
-    // 1 --5--> 2 --5--> 3
+    // 1-5-2-5-3
     g.addEdge(1, 2, 5);
     g.addEdge(2, 3, 5);
 
@@ -100,16 +97,15 @@ TEST_CASE("printShortestEdges logic: reachable then unreachable after edge closu
     // Now toggle both edges OFF
     REQUIRE(g.toggleEdgesClosure({{1,2}, {2,3}}) == true);
 
-    // Now unreachable
+    // Now unreachable...
     auto res2 = g.dijkstra(1, 3);
     REQUIRE(res2.totalCost == -1);
 }
 
 /*
-===========================================================
- TEST 5: isConnected + checkEdgeStatus basic behavior
-===========================================================
+ TEST 5: We test isConnected + checkEdgeStatus basic behavior
 */
+
 TEST_CASE("Edge status and connectivity") {
     Graph g;
 
@@ -126,4 +122,63 @@ TEST_CASE("Edge status and connectivity") {
 
     REQUIRE(g.checkEdgeStatus(1,2) == "closed");
     REQUIRE(g.isConnected(1,3) == false);
+}
+
+// LOL we need a bit more test cases..
+// Two more invalid insert tests: name, resident node, and class list...
+// A real test for printShortestEdges
+
+/*
+ TEST 6: More invalid insert cases
+*/
+
+TEST_CASE("More invalid student insertion cases") {
+    Graph g;
+
+    // 1. Invalid name (contains numbers)
+    REQUIRE(g.addStudent("A11y", 12345670, {"COP3530"}, 1) == false);
+
+    // 2. Empty class list
+    REQUIRE(g.addStudent("Jake", 12345671, {}, 5) == false);
+
+    // 3. Too many classes (>6)
+    vector<string> tooMany = {"A","B","C","D","E","F","G"};
+    REQUIRE(g.addStudent("Jake", 12345672, tooMany, 5) == false);
+
+    // 4. Invalid residence (negative building ID)
+    REQUIRE(g.addStudent("Sam", 12345673, {"COP3530"}, -2) == false);
+
+    // 5. Class code valid pattern, but does not exist in class → location map
+    REQUIRE(g.addStudent("Kelly", 12345674, {"COP9999"}, 5) == false);
+}
+
+/*
+ TEST 7: shortestTimesFromResidence logic: reachable then unreachable
+*/
+TEST_CASE("shortestTimesFromResidence: reachable then unreachable after edges toggle") {
+    Graph g;
+
+    // 1 --5--> 2 --5--> 3
+    g.addEdge(1, 2, 5);
+    g.addEdge(2, 3, 5);
+
+    // classCode -> location
+    g.setClassInfo("COP3530", ClassInfo{3, "10:00", "11:00"});
+
+    // student at node 1
+    g.addStudent("Sam", 55556666, {"COP3530"}, 1);
+
+    // BEFORE closing edges — reachable
+    int residence = g.getStudentResidence(55556666);
+    auto classes = g.getStudentClasses(55556666);
+    auto shortest = g.shortestTimesFromResidence(residence, classes);
+
+    REQUIRE(shortest["COP3530"] == 10); // 1->2->3 cost = 5+5
+
+    // Now toggle edges OFF
+    g.toggleEdgesClosure({{1,2},{2,3}});
+
+    // AFTER closing edges — unreachable
+    auto shortest2 = g.shortestTimesFromResidence(residence, classes);
+    REQUIRE(shortest2["COP3530"] == -1);
 }

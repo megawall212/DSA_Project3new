@@ -1,26 +1,33 @@
 #include "student.h"
 #include <cctype>
 #include <algorithm>
-#include <iostream> // Added in case needed, though not strictly used in logic below
+#include <iostream> // Added in case needed for debugging
 
-// Updated Constructor: Removed studentAge
+// I removed student age here...
+// but basically this initializes a student object...
+// with name, ufid, classes, and residence ID
 Student::Student(const string& studentName, 
                  int ufid, 
                  const vector<string>& classes, 
                  int res)
     : name(studentName), ufid(ufid), residence(res), classCodes(classes) {}
 
+// ok here are just the normal getter methods...
+
 string Student::getName() const { return name; }
 int Student::getUFID() const { return ufid; }
-// getAge() removed
 int Student::getResidence() const { return residence; }
 int Student::getNumberOfClasses() const { return static_cast<int>(classCodes.size()); }
 vector<string> Student::getClasses() const { return classCodes; }
 
+// check whether the student is enrolled in the given class...
+// dont skip classes!
 bool Student::hasClass(const string& classCode) const {
     return find(classCodes.begin(), classCodes.end(), classCode) != classCodes.end();
 }
 
+// add the class if not already enrolled...
+// fail if already enrolled lol...
 bool Student::addClass(const string& code) {
     if (hasClass(code)) return false;
     classCodes.push_back(code);
@@ -49,7 +56,8 @@ bool Student::isValidUFID(const string& id) {
 
 bool Student::isValidName(const string& n) {
     if (n.empty()) return false;
-    // Allow alphabetic characters and spaces
+    
+    // Fix: I failed test cases 1... We should allow alphabetic characters and spaces...
     return all_of(n.begin(), n.end(), [](char c){ 
         return isalpha(static_cast<unsigned char>(c)) || c == ' '; 
     });

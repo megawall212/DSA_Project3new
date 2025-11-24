@@ -26,7 +26,7 @@ public:
     // Getters
     string getName() const;
     int getUFID() const;
-    // int getAge() const;      // REMOVED
+    // int getAge() const;      we dont need age....
     int getResidence() const;
     int getNumberOfClasses() const;
     vector<string> getClasses() const;

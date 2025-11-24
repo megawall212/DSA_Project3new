@@ -12,15 +12,17 @@ int main() {
     cin.tie(nullptr);
 
     Graph g;
-    // Load dataset (autograder expects data/ placed at repo root)
+    // this is really important...
+    // Load dataset (autograder WANTS data/ placed at repo root...)
     g.loadEdgesCSV("data/edges.csv");
     g.loadClassesCSV("data/classes.csv");
 
     string line;
     int numCommands;
     if (!(cin >> numCommands)) return 0;
-    string dummy;
-    getline(cin, dummy); // consume newline after number
+    // consume newline after reading an integer...
+    string areweserious;
+    getline(cin, areweserious); 
 
     for (int i = 0; i < numCommands; ++i) {
         if (!getline(cin, line)) break;
@@ -29,12 +31,14 @@ int main() {
         string cmd;
         ss >> cmd;
 
+        // now we handle each command...
+
         if (cmd == "insert") {
             string name;
             int ufid,residence, n;
             ss >> ws;
-            if (ss.peek() == '"') {       // handle quoted name
-                ss.get();                 // consume opening "
+            if (ss.peek() == '"') {       // handle quoted name maybe...
+                ss.get();                 
                 getline(ss, name, '"');
             } else {
                 ss >> name;
@@ -85,6 +89,7 @@ int main() {
             for (int k = 0; k < N; ++k) {
                 int a, b;
                 ss >> a >> b;
+                // ok this weird function is from C++ libraries...
                 pairs.emplace_back(a,b);
             }
             bool ok = g.toggleEdgesClosure(pairs);

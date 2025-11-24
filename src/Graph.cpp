@@ -9,15 +9,18 @@
 
 using namespace std;
 
-/* ----------------------------
-   CSV Loading Functions
-   ---------------------------- */
+
+// load edges from CSV file
+// each row = u,v, time
+// build adjacency list
+// return false if file cannot be opened or read 
+
 bool Graph::loadEdgesCSV(const string& filepath) {
     ifstream file(filepath);
     if (!file.is_open()) return false;
 
     string line;
-    getline(file, line); // skip header (if present)
+    getline(file, line); // this is for debugging... skip the header maybe...
 
     while (getline(file, line)) {
         if (line.empty()) continue;
@@ -32,6 +35,8 @@ bool Graph::loadEdgesCSV(const string& filepath) {
 
         if (!getline(ss, travelTimeStr)) continue;
 
+        // the try catch here is to avoid invalid stoi conversion...
+        // if any conversion fails, we just skip that line
         try {
             int loc1 = stoi(loc1Str);
             int loc2 = stoi(loc2Str);
@@ -48,13 +53,19 @@ bool Graph::loadEdgesCSV(const string& filepath) {
     return true;
 }
 
+
+// load classes from CSV file
+// remember it has classcode,location,start, and end time
+// return false if file cannot be opened or read...
+// we use classtolocation and classInfoMap functions here
+// because we need to store class info too
+
 bool Graph::loadClassesCSV(const string& filepath) {
     ifstream file(filepath);
     if (!file.is_open()) return false;
 
     string line;
-    getline(file, line); // skip header (if present)
-
+    getline(file, line); // skip header line like the previous function
     while (getline(file, line)) {
         if (line.empty()) continue;
         stringstream ss(line);
@@ -83,27 +94,28 @@ bool Graph::loadClassesCSV(const string& filepath) {
     return true;
 }
 
-/* ----------------------------
-   Class Queries
-   ---------------------------- */
+
+// again getclasslocation returns locationid for classcode
+// it here is -1 if DNE...
 int Graph::getClassLocation(const string& classCode) const {
     auto it = classToLocation.find(classCode);
     return it != classToLocation.end() ? it->second : -1;
 }
+// getclassinfo returns stored classinfo for classcode
 
 ClassInfo Graph::getClassInfo(const string& classCode) const {
     auto it = classInfoMap.find(classCode);
     return it != classInfoMap.end() ? it->second : ClassInfo();
 }
-
+// the set function sets/updates classinfo for classcode
+// we've explained all these in the header file.
 void Graph::setClassInfo(const std::string& classCode, const ClassInfo& info) {
     classInfoMap[classCode] = info;
     classToLocation[classCode] = info.locationId;
 }
 
-/* ----------------------------
-   Edge Operations
-   ---------------------------- */
+// insert edge into the adjacency list
+// we assume undirected graph here for travel time between two locations
 void Graph::addEdge(int loc1, int loc2, int travelTime) {
     if (adjList.find(loc1) == adjList.end()) adjList[loc1] = {};
     if (adjList.find(loc2) == adjList.end()) adjList[loc2] = {};
@@ -111,6 +123,8 @@ void Graph::addEdge(int loc1, int loc2, int travelTime) {
     adjList[loc2].push_back(Edge(loc1, travelTime, true));
 }
 
+// toggle edges between open/closed
+// be careful.. we need to return false immediately if any edge DNE
 bool Graph::toggleEdgesClosure(const vector<pair<int,int>>& edges) {
     for (const auto& p : edges) {
         int u = p.first, v = p.second;
@@ -123,16 +137,15 @@ bool Graph::toggleEdgesClosure(const vector<pair<int,int>>& edges) {
     return true;
 }
 
-
+// check if a specific edge is open/closed/DNE
 string Graph::checkEdgeStatus(int loc1, int loc2) const {
     const Edge* edge = findEdgeConst(loc1, loc2);
     if (!edge) return "DNE";
     return edge->isOpen ? "open" : "closed";
 }
 
-/* ----------------------------
-   Connectivity & Shortest Paths
-   ---------------------------- */
+
+// we need to do a simple BFS to test connectivity using only open edges
 bool Graph::isConnected(int src, int dst) const {
     if (adjList.find(src) == adjList.end() || adjList.find(dst) == adjList.end()) return false;
     unordered_set<int> visited;
@@ -152,6 +165,12 @@ bool Graph::isConnected(int src, int dst) const {
     }
     return false;
 }
+
+// We love dijkstra...
+// if startnode or endnode DNE, return totalcost -1 /no path...
+// remember the step.. initialize infinity distance for every reachable node...
+// then use a min heap...
+// finally build the path and return the result...
 
 PathResult Graph::dijkstra(int src, int dst) const {
     PathResult result;
@@ -199,10 +218,13 @@ PathResult Graph::dijkstra(int src, int dst) const {
     return result;
 }
 
+// shortestPath simply calls dijkstra internally
 PathResult Graph::shortestPath(int start, int end) {
     return dijkstra(start, end);
 }
 
+// buildpath constructs the path from source to target
+// Of course we are using it from dijkstra parent map...
 vector<int> Graph::buildPath(int target, const unordered_map<int,int>& parent) const {
     vector<int> path;
     int cur = target;
@@ -215,9 +237,8 @@ vector<int> Graph::buildPath(int target, const unordered_map<int,int>& parent) c
     return path;
 }
 
-/* ----------------------------
-   Student Zone (MST helpers)
-   ---------------------------- */
+
+//geneate all the edges in the induced subgraph
 vector<EdgeInfo> Graph::inducedSubgraphEdges(const unordered_set<int>& vertices) const {
     vector<EdgeInfo> edges;
     for (int u : vertices) {
@@ -225,6 +246,9 @@ vector<EdgeInfo> Graph::inducedSubgraphEdges(const unordered_set<int>& vertices)
         if (it == adjList.end()) continue;
         for (const auto& e : it->second) {
             int v = e.destination;
+
+            // Notice that we need to force u < v to avoid duplicates
+            // because this graph is undirected...
             if (vertices.find(v) != vertices.end() && u < v && e.isOpen) {
                 edges.push_back(EdgeInfo(u, v, e.travelTime));
             }
@@ -232,6 +256,10 @@ vector<EdgeInfo> Graph::inducedSubgraphEdges(const unordered_set<int>& vertices)
     }
     return edges;
 }
+
+// Well heads or tail?
+// I decided to use Prim's algorithm to calculate....
+// the MST cost for this induced subgraph...
 
 int Graph::computeMSTCost(const unordered_set<int>& vertices, const vector<EdgeInfo>& edges) const {
     if (vertices.empty()) return 0;
@@ -244,6 +272,8 @@ int Graph::computeMSTCost(const unordered_set<int>& vertices, const vector<EdgeI
 
     unordered_set<int> inMST;
     unordered_map<int,int> minEdge;
+
+    // initialize minEdge to infinity
     for (auto &kv : g) minEdge[kv.first] = numeric_limits<int>::max();
 
     int start = *vertices.begin();
@@ -269,6 +299,12 @@ int Graph::computeMSTCost(const unordered_set<int>& vertices, const vector<EdgeI
     return total;
 }
 
+// computeStudentZoneCost computes the total cost of MST 
+// for the set of class locations from residenceId
+// we first need to build the induced subgraph including residence and all class locations
+// then we call computeMSTCost to get the result
+// think about this as connecting all class locations and residence with minimum total travel time
+
 int Graph::computeStudentZoneCost(int residenceId, const vector<int>& classLocations) const {
     unordered_set<int> vertices;
     vertices.insert(residenceId);
@@ -281,9 +317,11 @@ int Graph::computeStudentZoneCost(int residenceId, const vector<int>& classLocat
     return computeMSTCost(vertices, edges);
 }
 
-/* ----------------------------
-   Student / class management
-   ---------------------------- */
+
+// Ok here's what I failed one of the test cases...
+// we need to validate everything before adding a student...
+// including name, ufid, classes, residence...
+
 bool Graph::addStudent(const std::string& name, int ufid,const std::vector<std::string>& classes, int residence) {
     // Validate UFID and name
     string ufidStr = to_string(ufid);
@@ -307,16 +345,18 @@ bool Graph::addStudent(const std::string& name, int ufid,const std::vector<std::
     if (adjList.find(residence) == adjList.end())
         return false;
 
-    // Add student
+    // Finally we can add student...
     students[ufid] = Student(name, ufid,classes, residence);
     return true;
 }
 
-
+// remove student by ufid
 bool Graph::removeStudent(int ufid) {
     return students.erase(ufid) > 0;
 }
 
+// remove class from all students
+// well remove the student entirely too if no classes left after removal
 int Graph::removeClass(const std::string& classCode) {
     int count = 0;
     vector<int> toErase;
@@ -356,9 +396,9 @@ bool Graph::replaceClass(int ufid, const std::string& oldClass, const std::strin
     return s.replaceClass(oldClass, newClass);
 }
 
-/* ----------------------------
-   Student helpers
-   ---------------------------- */
+// Student helpers for main.cpp...
+// I explained these in the header file...
+
 string Graph::getStudentName(int ufid) const {
     auto it = students.find(ufid);
     return it != students.end() ? it->second.getName() : "";
@@ -379,9 +419,10 @@ vector<pair<string,int>> Graph::getStudentClasses(int ufid) const {
     return result;
 }
 
-/* ----------------------------
-   shortestTimesFromResidence
-   ---------------------------- */
+
+// shortestTimesFromResidence computes shortest travel times
+// from residenceId to each class location in classes
+
 map<string,int> Graph::shortestTimesFromResidence(int residenceId, const vector<pair<string,int>>& classes) const {
     map<string,int> out;
     if (adjList.find(residenceId) == adjList.end()) {
@@ -402,29 +443,35 @@ map<string,int> Graph::shortestTimesFromResidence(int residenceId, const vector<
     return out;
 }
 
-/* ----------------------------
-   Extra Credit: verify schedule
-   ---------------------------- */
+
+// Ok finally it's time for extra credit...
+// we check if the schedule has any conflicts...
+// we simply check if we can make it from one class to the next
+// even it's back to back classes...
+
 vector<string> Graph::verifySchedule(const vector<ClassInfo>& classes) const {
     vector<string> out;
     if (classes.size() <= 1) return out;
+    // Since I used HH/MM style, we need to convert them to minutes...
     auto timeToMinutes = [](const string& s)->int {
         int h = stoi(s.substr(0,2));
         int m = stoi(s.substr(3,2));
         return h*60 + m;
     };
+
+    // check each consecutive class pair
     for (size_t i = 0; i+1 < classes.size(); ++i) {
         PathResult pr = dijkstra(classes[i].locationId, classes[i+1].locationId);
         if (pr.totalCost == -1) { out.push_back("Cannot make it!"); continue; }
+        // calculate the gap time between classes
         int gap = timeToMinutes(classes[i+1].startTime) - timeToMinutes(classes[i].endTime);
         out.push_back(gap >= pr.totalCost ? "Can make it!" : "Cannot make it!");
     }
     return out;
 }
 
-/* ----------------------------
-   Edge helpers
-   ---------------------------- */
+// the edge helpers to find edges in the adjacency list...
+
 Edge* Graph::findEdge(int u, int v) {
     auto it = adjList.find(u);
     if (it == adjList.end()) return nullptr;
@@ -439,9 +486,8 @@ const Edge* Graph::findEdgeConst(int u, int v) const {
     return nullptr;
 }
 
-/* ----------------------------
-   Debug
-   ---------------------------- */
+
+// again we just print graph and student counts for debugging...
 void Graph::debugGraphState() const {
     cerr << "Nodes: " << adjList.size() << "\n";
     cerr << "Students: " << students.size() << "\n";
