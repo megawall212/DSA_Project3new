@@ -1,6 +1,6 @@
-# 🎓 DSA Project 3 – UF Campus Graph & Student Scheduler
+# 🎓 DSA Project 3 – UF Campus Compass & Student Scheduler
 
-**Author:** Johnson Li  
+**Author:** Zeyu Li  
 **Course:** COP3530 – Data Structures & Algorithms  
 **Semester:** Fall 2025  
 
