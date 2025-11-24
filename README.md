@@ -24,6 +24,8 @@
 ## 📝 Project Overview
 
 This project implements a **UF campus navigation & student class scheduler system** using C++.  
+For more info about this project, see [info.md](info.md).  
+For more info about setting up the Catch2 environment, see [catch2.md](catch2.md).  
 
 ✅ **Main functionalities:**
 
