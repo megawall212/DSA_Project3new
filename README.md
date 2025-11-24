@@ -65,7 +65,8 @@ DSA_Project3new/
 ├─ CMakeLists.txt  
 └─ README.md  
 
---images...
+![Structure](images/structure.png)
+
 
 
 - ## ⚙️ Dependencies  
