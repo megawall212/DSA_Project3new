@@ -53,6 +53,18 @@ The project emphasizes **data structures**, **graph algorithms**, and **robust v
 
 ## 🗂 Project Structure
 
+DSA_Project3new/  
+├─ build/ # CMake build folder  
+├─ data/ # CSV files for edges and classes  
+├─ src/  
+│ ├─ student.h / student.cpp  
+│ ├─ Graph.h / Graph.cpp  
+│ └─ main.cpp  
+├─ test/  
+│ └─ test.cpp # Catch2 unit tests  
+├─ CMakeLists.txt  
+└─ README.md  
+
 --images...
 
 
