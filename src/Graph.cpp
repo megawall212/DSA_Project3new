@@ -322,9 +322,11 @@ int Graph::computeStudentZoneCost(int residenceId, const vector<int>& classLocat
 // we need to validate everything before adding a student...
 // including name, ufid, classes, residence...
 
-bool Graph::addStudent(const std::string& name, int ufid,const std::vector<std::string>& classes, int residence) {
+bool Graph::addStudent(const std::string& name, const string& ufid,const std::vector<std::string>& classes, int residence) {
     // Validate UFID and name
-    string ufidStr = to_string(ufid);
+    // make sure the leading 0 is handled correctly
+    string ufidStr = ufid;
+
     if (!Student::isValidUFID(ufidStr)) return false;
     if (!Student::isValidName(name)) return false;
 
@@ -346,12 +348,12 @@ bool Graph::addStudent(const std::string& name, int ufid,const std::vector<std::
         return false;
 
     // Finally we can add student...
-    students[ufid] = Student(name, ufid,classes, residence);
+    students[ufidStr] = Student(name, ufid,classes, residence);
     return true;
 }
 
 // remove student by ufid
-bool Graph::removeStudent(int ufid) {
+bool Graph::removeStudent(const string& ufid) {
     return students.erase(ufid) > 0;
 }
 
@@ -359,9 +361,9 @@ bool Graph::removeStudent(int ufid) {
 // well remove the student entirely too if no classes left after removal
 int Graph::removeClass(const std::string& classCode) {
     int count = 0;
-    vector<int> toErase;
+    vector<string> toErase;
     for (auto &kv : students) {
-        int uf = kv.first;
+        string uf = kv.first;
         Student &s = kv.second;
         if (s.hasClass(classCode)) {
             if (s.removeClass(classCode)) {
@@ -370,13 +372,13 @@ int Graph::removeClass(const std::string& classCode) {
             }
         }
     }
-    for (int u : toErase) students.erase(u);
+    for (const string&u : toErase) students.erase(u);
     classToLocation.erase(classCode);
     classInfoMap.erase(classCode);
     return count;
 }
 
-bool Graph::dropClass(int ufid, const std::string& classCode) {
+bool Graph::dropClass(const string& ufid, const std::string& classCode) {
     auto it = students.find(ufid);
     if (it == students.end()) return false;
     Student &s = it->second;
@@ -386,7 +388,7 @@ bool Graph::dropClass(int ufid, const std::string& classCode) {
     return true;
 }
 
-bool Graph::replaceClass(int ufid, const std::string& oldClass, const std::string& newClass) {
+bool Graph::replaceClass(const string& ufid, const std::string& oldClass, const std::string& newClass) {
     auto it = students.find(ufid);
     if (it == students.end()) return false;
     Student &s = it->second;
@@ -399,17 +401,17 @@ bool Graph::replaceClass(int ufid, const std::string& oldClass, const std::strin
 // Student helpers for main.cpp...
 // I explained these in the header file...
 
-string Graph::getStudentName(int ufid) const {
+string Graph::getStudentName(const string& ufid) const {
     auto it = students.find(ufid);
     return it != students.end() ? it->second.getName() : "";
 }
 
-int Graph::getStudentResidence(int ufid) const {
+int Graph::getStudentResidence(const string& ufid) const {
     auto it = students.find(ufid);
     return it != students.end() ? it->second.getResidence() : -1;
 }
 
-vector<pair<string,int>> Graph::getStudentClasses(int ufid) const {
+vector<pair<string,int>> Graph::getStudentClasses(const string& ufid) const {
     vector<pair<string,int>> result;
     auto it = students.find(ufid);
     if (it == students.end()) return result;
