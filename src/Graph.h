@@ -113,11 +113,11 @@ public:
     // dropClass removes class from 1 specific student, returns true if successful
     // replaceClass replaces oldClass with newClass for a specific student, returns true if successful
 
-    bool addStudent(const std::string& name, int ufid,const std::vector<std::string>& classes, int residence);
-    bool removeStudent(int ufid);
+    bool addStudent(const std::string& name, const string& ufid,const std::vector<std::string>& classes, int residence);
+    bool removeStudent(const string& ufid);
     int removeClass(const std::string& classCode);
-    bool dropClass(int ufid, const std::string& classCode);
-    bool replaceClass(int ufid, const std::string& oldClass, const std::string& newClass);
+    bool dropClass(const string& ufid, const std::string& classCode);
+    bool replaceClass(const string& ufid, const std::string& oldClass, const std::string& newClass);
 
     
     
@@ -126,9 +126,9 @@ public:
     // getStudentResidence returns residence ID by ufid, -1 if DNE
     // getStudentClasses returns vector/pair of (classCode, locationID) pairs for student
 
-    string getStudentName(int ufid) const;
-    int getStudentResidence(int ufid) const;
-    vector<pair<string,int>> getStudentClasses(int ufid) const;
+    string getStudentName(const string& ufid) const;
+    int getStudentResidence(const string& ufid) const;
+    vector<pair<string,int>> getStudentClasses(const string& ufid) const;
 
     // Times and student zone
     // shortestTimesFromResidence returns map 
@@ -160,7 +160,7 @@ private:
     unordered_map<int, vector<Edge>> adjList;
     unordered_map<string, int> classToLocation;
     unordered_map<string, ClassInfo> classInfoMap;
-    unordered_map<int, Student> students;
+    unordered_map<string, Student> students;
 
 
     // Some internal helper functions for graph algorithms...
