@@ -35,7 +35,8 @@ int main() {
 
         if (cmd == "insert") {
             string name;
-            int ufid,residence, n;
+            string ufid;   // NOTE: string instead of int
+            int residence, n;
             ss >> ws;
             if (ss.peek() == '"') {       // handle quoted name maybe...
                 ss.get();                 
@@ -58,22 +59,25 @@ int main() {
                 cout << "unsuccessful\n"; continue;
             }
 
-            bool ok = g.addStudent(name, ufid,classes, residence);
+            bool ok = g.addStudent(name, ufid, classes, residence);
             cout << (ok ? "successful" : "unsuccessful") << "\n";
         }
         else if (cmd == "remove") {
-            int ufid; ss >> ufid;
+            string ufid;  
+            ss >> ufid;
             bool ok = g.removeStudent(ufid);
             cout << (ok ? "successful" : "unsuccessful") << "\n";
         }
         else if (cmd == "dropClass") {
-            int ufid; string classCode;
+            string ufid;   
+            string classCode;
             ss >> ufid >> classCode;
             bool ok = g.dropClass(ufid, classCode);
             cout << (ok ? "successful" : "unsuccessful") << "\n";
         }
         else if (cmd == "replaceClass") {
-            int ufid; string oldC, newC;
+            string ufid;   
+            string oldC, newC;
             ss >> ufid >> oldC >> newC;
             bool ok = g.replaceClass(ufid, oldC, newC);
             cout << (ok ? "successful" : "unsuccessful") << "\n";
@@ -104,7 +108,8 @@ int main() {
             cout << (g.isConnected(a,b) ? "successful" : "unsuccessful") << "\n";
         }
         else if (cmd == "printShortestEdges") {
-            int ufid; ss >> ufid;
+            string ufid;   
+            ss >> ufid;
             int residence = g.getStudentResidence(ufid);
             auto classes = g.getStudentClasses(ufid);
             sort(classes.begin(), classes.end(), [](const pair<string,int>& A, const pair<string,int>& B){
@@ -119,7 +124,8 @@ int main() {
             }
         }
         else if (cmd == "printStudentZone") {
-            int ufid; ss >> ufid;
+            string ufid;   
+            ss >> ufid;
             int residence = g.getStudentResidence(ufid);
             vector<int> locs;
             auto classes = g.getStudentClasses(ufid);

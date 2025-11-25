@@ -21,7 +21,7 @@ public:
     Student() = default;
     
     // Updated Constructor: Removed age
-    Student(const string& studentName, int ufid, const vector<string>& classes, int res);
+    Student(const string& studentName, const string& ufid, const vector<string>& classes, int res);
 
     // Getters
     string getName() const;
