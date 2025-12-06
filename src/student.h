@@ -11,7 +11,7 @@ using namespace std;
 class Student {
 private:
     string name;                // Full name of the student
-    int ufid;                   // 8-digit UFID (int)
+    string ufid;                   // 8-digit UFID (int)
     // int age;                 // REMOVED: Not in project requirements
     int residence = 0;          // Residence location ID
     vector<string> classCodes;  // Classes
@@ -25,7 +25,7 @@ public:
 
     // Getters
     string getName() const;
-    int getUFID() const;
+    string getUFID() const;
     // int getAge() const;      we dont need age....
     int getResidence() const;
     int getNumberOfClasses() const;

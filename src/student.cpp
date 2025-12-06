@@ -7,7 +7,7 @@
 // but basically this initializes a student object...
 // with name, ufid, classes, and residence ID
 Student::Student(const string& studentName, 
-                 int ufid, 
+                 const string& ufid, 
                  const vector<string>& classes, 
                  int res)
     : name(studentName), ufid(ufid), residence(res), classCodes(classes) {}
@@ -15,7 +15,7 @@ Student::Student(const string& studentName,
 // ok here are just the normal getter methods...
 
 string Student::getName() const { return name; }
-int Student::getUFID() const { return ufid; }
+string Student::getUFID() const { return ufid; }
 int Student::getResidence() const { return residence; }
 int Student::getNumberOfClasses() const { return static_cast<int>(classCodes.size()); }
 vector<string> Student::getClasses() const { return classCodes; }
@@ -56,7 +56,7 @@ bool Student::isValidUFID(const string& id) {
 
 bool Student::isValidName(const string& n) {
     if (n.empty()) return false;
-    
+
     // Fix: I failed test cases 1... We should allow alphabetic characters and spaces...
     return all_of(n.begin(), n.end(), [](char c){ 
         return isalpha(static_cast<unsigned char>(c)) || c == ' '; 

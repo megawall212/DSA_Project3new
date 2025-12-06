@@ -348,7 +348,7 @@ bool Graph::addStudent(const std::string& name, const string& ufid,const std::ve
         return false;
 
     // Finally we can add student...
-    students[ufid] = Student(name, ufid,classes, residence);
+    students[ufidStr] = Student(name, ufid,classes, residence);
     return true;
 }
 

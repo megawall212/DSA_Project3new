@@ -18,6 +18,11 @@ Due to campus construction and major events such as football games or guest lect
 
 > Note: All numbers between nodes are **random** and not accurate distances.
 
+![visualization](images/visulization.png)
+also here:
+[map](https://cop3530.github.io/)
+
+
 **Task:**  
 Develop a **C++ program** to manage on-campus roads and sidewalks connecting student residences and classrooms, supporting:
 - Student and logistic management
